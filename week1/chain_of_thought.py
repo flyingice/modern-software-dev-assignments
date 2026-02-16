@@ -1,4 +1,3 @@
-import os
 import re
 from dotenv import load_dotenv
 from ollama import chat
@@ -7,9 +6,9 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
-# TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
-
+YOUR_SYSTEM_PROMPT = """
+You are an assistant good at arithmetics. Let's figure out the problem step by step.
+"""
 
 USER_PROMPT = """
 Solve this problem, then give the final answer on the last line as "Answer: <number>".
