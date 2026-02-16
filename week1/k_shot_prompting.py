@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 from ollama import chat
 
@@ -7,7 +6,15 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """
+Your task: Reverse strings character by character.
+
+<example>
+- "abcdefg" -> "gfedcba"
+- "http" -> "ptth"
+- "status" -> "sutats"
+</example>
+"""
 
 USER_PROMPT = """
 Reverse the order of letters in the following word. Only output the reversed word, no other text:
