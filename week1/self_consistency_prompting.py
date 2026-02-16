@@ -1,4 +1,3 @@
-import os
 import re
 from collections import Counter
 from dotenv import load_dotenv
@@ -8,8 +7,26 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
-# TODO: Fill this in! Try to get as close to 100% correctness across all runs as possible.
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """
+You are a helpful assistant good at solving mathematical problems.
+
+Try your best to break down the original problem into multiple steps and think through the steps.
+
+## Example
+
+Problem:
+Sam had five apples. He gave two of them to his neighbour and then bought another four in a supermarket.
+How many apples Sam ended up having?
+
+Solution:
+Sam had five (5) apples and he gave two (2) to someone else.
+5 - 2 = 3
+Now Sam had three (3) apples, but again he bought four (4) apples.
+3 + 4 = 7
+So the final answer is 7.
+
+Answer: 7
+"""
 
 USER_PROMPT = """
 Solve this problem, then give the final answer on the last line as "Answer: <number>".
