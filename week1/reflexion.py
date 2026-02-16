@@ -1,4 +1,3 @@
-import os
 import re
 from typing import Callable, List, Tuple
 from dotenv import load_dotenv
@@ -14,8 +13,9 @@ the function is_valid_password(password: str) -> bool. No prose or comments.
 Keep the implementation minimal.
 """
 
-# TODO: Fill this in!
-YOUR_REFLEXION_PROMPT = ""
+YOUR_REFLEXION_PROMPT = """
+There are bugs with your implementation. Not all the test cases pass.
+"""
 
 
 # Ground-truth test suite used to evaluate generated code
@@ -92,11 +92,24 @@ def generate_initial_function(system_prompt: str) -> str:
 
 
 def your_build_reflexion_context(prev_code: str, failures: List[str]) -> str:
-    """TODO: Build the user message for the reflexion step using prev_code and failures.
-
+    """
     Return a string that will be sent as the user content alongside the reflexion system prompt.
     """
-    return ""
+    return f"""
+{prev_code}
+
+Your first attempt above fail the following test cases (each line corresponds to one failing test):
+
+{'\n'.join(failures)}
+
+Try to address all the issues in the next iteration by verifying all the password requirements:
+
+1. Password must have at least 1 uppercase letter
+2. Password must have at least 1 digit
+3. Password must have at least 1 special character
+
+Also remember Python has strict requirements on code indentation.
+"""
 
 
 def apply_reflexion(
