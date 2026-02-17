@@ -69,8 +69,14 @@ TOOL_REGISTRY: Dict[str, Callable[..., str]] = {
 # Prompt scaffolding
 # ==========================
 
-# TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """
+When asked for calling the tool, answer with the following JSON content only:
+
+{
+    "tool":"output_every_func_return_type",
+    "args": {}
+}
+"""
 
 
 def resolve_path(p: str) -> str:
