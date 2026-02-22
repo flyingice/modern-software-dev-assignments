@@ -2,14 +2,14 @@ import inspect
 import json
 import os
 
-from openai import OpenAI
+from anthropic import Anthropic
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 load_dotenv()
 
-openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 SYSTEM_PROMPT = """
 You are a coding assistant whose goal it is to help us solve coding tasks.
@@ -18,7 +18,7 @@ You have access to a series of tools you can execute. Hear are the tools you can
 {tool_list_repr}
 
 When you want to use a tool, reply with exactly one line in the format: 'tool: TOOL_NAME({{JSON_ARGS}})' and nothing else.
-Use compact single-line JSON with double quotes. After receiving a tool_result(...) message, continue the task.
+Use compact single-line JSON with double quote. After receiving a tool_result(...) message, continue the task.
 If no tool is needed, respond normally.
 """
 
@@ -143,20 +143,20 @@ def extract_tool_invocations(text: str) -> List[Tuple[str, Dict[str, Any]]]:
             continue
     return invocations
 
-def execute_llm_call(conversation: List[Dict[str, str]]):
-    response = openai_client.chat.completions.create(
-        model="gpt-5",
+# Anthropic's API doesn't accept a "system" role in the messages array — it's a top-level system parameter instead.
+def execute_llm_call(system_prompt: str, conversation: List[Dict[str, str]]):
+    response = anthropic_client.messages.create(
+        model="claude-haiku-4-5",
+        system=system_prompt,
         messages=conversation,
-        max_completion_tokens=2000
+        max_tokens=2000
     )
-    return response.choices[0].message.content
+    return response.content[0].text
 
 def run_coding_agent_loop():
-    print(get_full_system_prompt())
-    conversation = [{
-        "role": "system",
-        "content": get_full_system_prompt()
-    }]
+    system_prompt = get_full_system_prompt()
+    print(system_prompt)
+    conversation = []
     while True:
         try:
             user_input = input(f"{YOU_COLOR}You:{RESET_COLOR}:")
@@ -167,7 +167,7 @@ def run_coding_agent_loop():
             "content": user_input.strip()
         })
         while True:
-            assistant_response = execute_llm_call(conversation)
+            assistant_response = execute_llm_call(system_prompt, conversation)
             tool_invocations = extract_tool_invocations(assistant_response)
             if not tool_invocations:
                 print(f"{ASSISTANT_COLOR}Assistant:{RESET_COLOR}: {assistant_response}")
