@@ -1,8 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
+
 from fastmcp import FastMCP
 
 mcp = FastMCP(name="SimpleMCPTestServer")
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def resolve_abs_path(path_str: str) -> Path:
@@ -23,9 +26,21 @@ def read_file_tool(filename: str) -> Dict[str, Any]:
     """
     full_path = resolve_abs_path(filename)
     print(full_path)
-    # TODO (mihail): Be more defensive in the file reading here
-    with open(str(full_path), "r") as f:
-        content = f.read()
+
+    if not full_path.is_file():
+        return {"error": f"Not a valid file: {full_path}"}
+
+    if full_path.stat().st_size > MAX_FILE_SIZE:
+        return {"error": f"File too large: {full_path}"}
+
+    try:
+        with open(str(full_path), "r") as f:
+            content = f.read()
+    except PermissionError:
+        return {"error": f"Permission denied: {full_path}"}
+    except UnicodeDecodeError:
+        return {"error": f"File is not valid text: {full_path}"}
+
     return {
         "file_path": str(full_path),
         "content": content
@@ -79,6 +94,25 @@ def edit_file_tool(path: str, old_str: str, new_str: str) -> Dict[str, Any]:
         "path": str(full_path),
         "action": "edited"
     }
+
+#  We can test this MCP server with Claude Desktop (acting as the MCP client):
+#
+# 1. Add the following to claude_desktop_config.json
+#    (on macOS: ~/Library/Application Support/Claude/claude_desktop_config.json):
+#
+#    "mcpServers": {
+#      "simple-mcp": {
+#        "command": "<path-to-virtualenv>/bin/python",
+#        "args": ["<path-to>/simple_mcp.py"]
+#      }
+#    }
+#
+#    Use the virtualenv Python so that dependencies (e.g. fastmcp) are available.
+#
+# 2. Restart Claude Desktop. The tools (read_file_tool, list_files_tool,
+#    edit_file_tool) should appear in the chat.
+#
+# 3. Remove the mcpServers config when done testing.
 
 if __name__ == "__main__":
     mcp.run()
