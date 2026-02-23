@@ -70,14 +70,89 @@ week2/tests/test_extract.py: lines 22-121
 ```
 
 ### Exercise 3: Refactor Existing Code for Clarity
-Prompt: 
+
+Prompt 1 (input validation):
 ```
-TODO
-``` 
+I want to refactor the exisiting codebase of week2 web applcation.
+To start with, improve the input validation using well-defined API schemas. Consider leveraging Pydantic library for the implementation.
+```
+
+Prompt 2 (database layer cleanup):
+```
+Let's proceed with data persistence layer cleanup.
+```
+
+Prompt 3 (database layer cleanup — follow-up):
+```
+It's much better to set up connection as a context manager using with syntax, so we benefit from automatic commit/rollback.
+```
+
+Prompt 4 (database layer cleanup — follow-up):
+```
+Put get_connection() in the with block.
+```
+
+Prompt 5 (app lifecycle & config management):
+```
+Can we do better in terms of application lifecycle management and configuration?
+```
+
+Prompt 6 (error handling — planning):
+```
+What can we do for the error handling?
+```
+
+Prompt 7 (cleanup):
+```
+As the last step, clean up unused imports for week2 web app.
+```
 
 Generated/Modified Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers. (We anticipate there may be multiple scattered changes here – just produce as comprehensive of a list as you can.)
+week2/app/config.py: lines 1-12 (new file)
+- Centralized configuration with environment variable overrides for
+  DATA_DIR, DB_PATH, and OLLAMA_MODEL
+
+week2/app/db.py: lines 1-112
+- Imports DATA_DIR, DB_PATH from config instead of hardcoding paths (line 6)
+- Singleton connection with lazy initialization via get_connection() (lines 11-18)
+- mark_action_item_done() returns cursor.rowcount instead of None (lines 97-104)
+
+week2/app/main.py: lines 1-49
+- Replaced @app.on_event startup/shutdown with lifespan context manager (lines 17-21)
+- Removed unused imports: Any, Dict, Optional, HTTPException, db (lines 1-13)
+- Added global exception handler for OllamaServiceError → 503 (lines 37-39)
+- Added global exception handler for Exception → 500 with logging (lines 42-45)
+
+week2/app/services/extract.py: lines 1-136
+- Added logging, RequestError, ResponseError, ValidationError imports (lines 3, 7-8)
+- Read OLLAMA_MODEL from config module instead of hardcoding (line 10)
+- Defined OllamaServiceError custom exception (lines 15-16)
+- Wrapped chat() call in try/except for RequestError and ResponseError (lines 83-105)
+- Wrapped model_validate_json() in try/except for ValidationError (lines 107-111)
+
+week2/app/routers/action_items.py: lines 1-86
+- Added Pydantic request/response models: ExtractRequest, MarkDoneRequest,
+  ActionItemOut, ExtractResponse, ActionItemDetail, MarkDoneResponse (lines 13-43)
+- Added HTTPException import (line 5)
+- mark_done checks rows_affected == 0 → raises 404 (lines 82-84)
+
+week2/app/routers/notes.py: lines 1-41
+- Added Pydantic request/response models: CreateNoteRequest, NoteOut (lines 10-18)
+
+week2/tests/test_extract.py: lines 130-157
+- test_extract_action_items_llm_ollama_unreachable: mocks chat to raise
+  RequestError, asserts OllamaServiceError (lines 133-138)
+- test_extract_action_items_llm_ollama_model_error: mocks chat to raise
+  ResponseError, asserts OllamaServiceError (lines 141-146)
+- test_extract_action_items_llm_malformed_response: mocks chat to return
+  invalid JSON, asserts OllamaServiceError (lines 149-156)
+
+week2/tests/test_error_handling.py: lines 1-76 (new file)
+- test_mark_done_nonexistent_item_returns_404 (lines 39-46)
+- test_get_nonexistent_note_returns_404 (lines 49-56)
+- test_extract_empty_text_returns_422 (lines 59-62)
+- test_db_error_returns_500 (lines 65-75)
 ```
 
 
