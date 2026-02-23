@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 from typing import Optional
 
-
-BASE_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = BASE_DIR / "data"
-DB_PATH = DATA_DIR / "app.db"
+from .config import DATA_DIR, DB_PATH
 
 _connection: sqlite3.Connection | None = None
 
@@ -104,3 +100,10 @@ def mark_action_item_done(action_item_id: int, done: bool) -> None:
             "UPDATE action_items SET done = ? WHERE id = ?",
             (1 if done else 0, action_item_id),
         )
+
+
+def close_connection() -> None:
+    global _connection
+    if _connection is not None:
+        _connection.close()
+        _connection = None

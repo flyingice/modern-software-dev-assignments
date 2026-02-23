@@ -3,11 +3,10 @@ from __future__ import annotations
 import re
 from typing import List
 
-from dotenv import load_dotenv
 from ollama import chat
 from pydantic import BaseModel
 
-load_dotenv()
+from ..config import OLLAMA_MODEL
 
 BULLET_PREFIX_PATTERN = re.compile(r"^\s*([-*•]|\d+\.)\s+")
 KEYWORD_PREFIXES = (
@@ -75,7 +74,7 @@ def extract_action_items_llm(text: str) -> List[str]:
         return []
 
     response = chat(
-        model="llama3.1:8b",
+        model=OLLAMA_MODEL,
         messages=[
             {
                 "role": "system",
