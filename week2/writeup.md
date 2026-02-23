@@ -20,14 +20,18 @@ This assignment took me about **TODO** hours to do.
 For each exercise, please include what prompts you used to generate the answer, in addition to the location of the generated response. Make sure to clearly add comments in your code documenting which parts are generated.
 
 ### Exercise 1: Scaffold a New Feature
-Prompt: 
+Prompt:
 ```
-TODO
-``` 
+Implement an LLM-powered alternative in extract_action_items_llm(), using Ollama Python library to connect to the local llama3.1:8b model. Ask the model to perform action item extraction.
+```
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+week2/app/services/extract.py: lines 68-95
+- Added ActionItems Pydantic model for structured JSON output (lines 68-69)
+- Added extract_action_items_llm() function that calls Ollama chat API
+  with llama3.1:8b model and parses structured output (lines 72-95)
+- Added pydantic BaseModel import (line 8)
 ```
 
 ### Exercise 2: Add Unit Tests
