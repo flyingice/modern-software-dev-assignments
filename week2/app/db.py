@@ -94,12 +94,14 @@ def list_action_items(note_id: Optional[int] = None) -> list[sqlite3.Row]:
         return list(cursor.fetchall())
 
 
-def mark_action_item_done(action_item_id: int, done: bool) -> None:
+def mark_action_item_done(action_item_id: int, done: bool) -> int:
     with get_connection() as conn:
-        conn.execute(
+        cursor = conn.cursor()
+        cursor.execute(
             "UPDATE action_items SET done = ? WHERE id = ?",
             (1 if done else 0, action_item_id),
         )
+        return cursor.rowcount
 
 
 def close_connection() -> None:

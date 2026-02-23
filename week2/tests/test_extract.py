@@ -1,7 +1,14 @@
 import os
-import pytest
+from unittest.mock import MagicMock, patch
 
-from ..app.services.extract import extract_action_items, extract_action_items_llm
+import pytest
+from ollama import RequestError, ResponseError
+
+from ..app.services.extract import (
+    OllamaServiceError,
+    extract_action_items,
+    extract_action_items_llm,
+)
 
 
 def test_extract_bullets_and_checkboxes():
@@ -118,3 +125,32 @@ def test_extract_action_items_llm_returns_list_of_strings():
     items_lower = [item.lower() for item in items]
     assert any("write" in item and "test" in item for item in items_lower)
     assert any("fix" in item and "bug" in item for item in items_lower)
+
+
+# --- Error handling tests for extract_action_items_llm ---
+
+
+@patch("week2.app.services.extract.chat")
+def test_extract_action_items_llm_ollama_unreachable(mock_chat):
+    """RequestError from ollama should be wrapped as OllamaServiceError."""
+    mock_chat.side_effect = RequestError("connection refused")
+    with pytest.raises(OllamaServiceError, match="unreachable"):
+        extract_action_items_llm("some text")
+
+
+@patch("week2.app.services.extract.chat")
+def test_extract_action_items_llm_ollama_model_error(mock_chat):
+    """ResponseError from ollama should be wrapped as OllamaServiceError."""
+    mock_chat.side_effect = ResponseError("model not found", status_code=404)
+    with pytest.raises(OllamaServiceError, match="Ollama error"):
+        extract_action_items_llm("some text")
+
+
+@patch("week2.app.services.extract.chat")
+def test_extract_action_items_llm_malformed_response(mock_chat):
+    """Invalid JSON from ollama should be wrapped as OllamaServiceError."""
+    mock_response = MagicMock()
+    mock_response.message.content = "not valid json"
+    mock_chat.return_value = mock_response
+    with pytest.raises(OllamaServiceError, match="Malformed"):
+        extract_action_items_llm("some text")

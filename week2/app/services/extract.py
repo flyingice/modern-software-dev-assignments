@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import List
 
-from ollama import chat
-from pydantic import BaseModel
+from ollama import RequestError, ResponseError, chat
+from pydantic import BaseModel, ValidationError
 
 from ..config import OLLAMA_MODEL
+
+logger = logging.getLogger(__name__)
+
+
+class OllamaServiceError(Exception):
+    """Raised when Ollama interaction fails."""
 
 BULLET_PREFIX_PATTERN = re.compile(r"^\s*([-*•]|\d+\.)\s+")
 KEYWORD_PREFIXES = (
@@ -73,24 +80,35 @@ def extract_action_items_llm(text: str) -> List[str]:
     if not text:
         return []
 
-    response = chat(
-        model=OLLAMA_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Extract action items from the given text. "
-                    "Return them as a JSON object with an 'items' field "
-                    "containing a list of concise, actionable task strings. "
-                    "If there are no action items, return an empty list."
-                ),
-            },
-            {"role": "user", "content": text},
-        ],
-        format=ActionItems.model_json_schema(),
-    )
+    try:
+        response = chat(
+            model=OLLAMA_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Extract action items from the given text. "
+                        "Return them as a JSON object with an 'items' field "
+                        "containing a list of concise, actionable task strings. "
+                        "If there are no action items, return an empty list."
+                    ),
+                },
+                {"role": "user", "content": text},
+            ],
+            format=ActionItems.model_json_schema(),
+        )
+    except RequestError as exc:
+        logger.error("Ollama unreachable: %s", exc)
+        raise OllamaServiceError(f"Ollama service unreachable: {exc}") from exc
+    except ResponseError as exc:
+        logger.error("Ollama response error: %s", exc)
+        raise OllamaServiceError(f"Ollama error: {exc}") from exc
 
-    result = ActionItems.model_validate_json(response.message.content)
+    try:
+        result = ActionItems.model_validate_json(response.message.content)
+    except ValidationError as exc:
+        logger.error("Malformed Ollama response: %s", exc)
+        raise OllamaServiceError(f"Malformed Ollama response: {exc}") from exc
     return result.items
 
 
