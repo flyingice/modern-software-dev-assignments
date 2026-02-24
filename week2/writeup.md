@@ -244,14 +244,21 @@ week2/app/db.py: lines 15, 70-82
 
 
 ### Exercise 5: Generate a README from the Codebase
-Prompt: 
+
+Prompt:
 ```
-TODO
-``` 
+Now generate a README under week2 folder from the current codebase.
+```
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+week2/README.md: lines 1-95 (new file)
+- Project overview and tech stack summary (lines 1-10)
+- Directory structure tree (lines 12-27)
+- Setup instructions: prerequisites, dependency install, env var config (lines 29-53)
+- How to run the app and tests (lines 55-67)
+- API endpoints reference table covering all 8 routes (lines 69-82)
+- Database schema tables for notes and action_items (lines 84-95)
 ```
 
 
