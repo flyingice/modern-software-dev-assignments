@@ -12,7 +12,7 @@ def get_connection() -> sqlite3.Connection:
     global _connection
     if _connection is None:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _connection = sqlite3.connect(DB_PATH)
+        _connection = sqlite3.connect(DB_PATH, check_same_thread=False)
         _connection.row_factory = sqlite3.Row
         _connection.execute("PRAGMA foreign_keys = ON")
     return _connection
@@ -68,15 +68,18 @@ def get_note(note_id: int) -> Optional[sqlite3.Row]:
 
 
 def insert_action_items(items: list[str], note_id: Optional[int] = None) -> list[int]:
+    if not items:
+        return []
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.executemany(
-            "INSERT INTO action_items (note_id, text) VALUES (?, ?)",
-            [(note_id, item) for item in items],
-        )
-        last_id = cursor.lastrowid
-        count = len(items)
-        return list(range(last_id - count + 1, last_id + 1))
+        ids: list[int] = []
+        for item in items:
+            cursor.execute(
+                "INSERT INTO action_items (note_id, text) VALUES (?, ?)",
+                (note_id, item),
+            )
+            ids.append(int(cursor.lastrowid))
+        return ids
 
 
 def list_action_items(note_id: Optional[int] = None) -> list[sqlite3.Row]:

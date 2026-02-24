@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import db
-from ..services.extract import extract_action_items
+from ..services.extract import OllamaServiceError, extract_action_items, extract_action_items_llm
 
 
 # Request models
@@ -55,6 +55,26 @@ def extract(payload: ExtractRequest) -> ExtractResponse:
         note_id = db.insert_note(text)
 
     items = extract_action_items(text)
+    ids = db.insert_action_items(items, note_id=note_id)
+    return ExtractResponse(
+        note_id=note_id,
+        items=[ActionItemOut(id=i, text=t) for i, t in zip(ids, items)],
+    )
+
+
+@router.post("/extract-llm")
+def extract_llm(payload: ExtractRequest) -> ExtractResponse:
+    text = payload.text.strip()
+
+    note_id: int | None = None
+    if payload.save_note:
+        note_id = db.insert_note(text)
+
+    try:
+        items = extract_action_items_llm(text)
+    except OllamaServiceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     ids = db.insert_action_items(items, note_id=note_id)
     return ExtractResponse(
         note_id=note_id,

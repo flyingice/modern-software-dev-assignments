@@ -32,6 +32,15 @@ def create_note(payload: CreateNoteRequest) -> NoteOut:
     )
 
 
+@router.get("")
+def list_all_notes() -> list[NoteOut]:
+    rows = db.list_notes()
+    return [
+        NoteOut(id=r["id"], content=r["content"], created_at=r["created_at"])
+        for r in rows
+    ]
+
+
 @router.get("/{note_id}")
 def get_single_note(note_id: int) -> NoteOut:
     row = db.get_note(note_id)

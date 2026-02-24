@@ -157,14 +157,89 @@ week2/tests/test_error_handling.py: lines 1-76 (new file)
 
 
 ### Exercise 4: Use Agentic Mode to Automate a Small Task
-Prompt: 
+
+Prompt 1 (planning):
 ```
-TODO
-``` 
+**Context
+
+We have implemented LLM-powered action items extraction for week2 web app in extract_action_items_llm().
+
+**Task
+
+- Integrate the LLM-powered extraction a new endpoint
+- Update the frontend to include an "Extract LLM" button that, when clicked, triggers the extraction via the new endpoint
+- Expose one more endpoint to retrieve all notes from the SQLite database
+- Update the frontend to include a "List Notes" button that, when clicked, fetches and displays all the notes using the new endpoint from the previous step
+```
+
+Prompt 2 (debugging — initial report):
+```
+I launched the week2 web app and typed in the following text as Notes:
+
+Had a great team lunch. The weather was sunny.
+We need to migrate the database to PostgreSQL by Friday.
+John should update the API docs. The office plant looks healthy."
+With the Save as note option selected, I got a "Error extracting items" message from the page.
+
+Debug and fix the issue.
+```
+
+Prompt 3 (debugging — clarification):
+```
+With the quoted content, extract_action_items_llm() should return 2 action items instead of an empty list.
+```
+
+Prompt 4 (debugging — additional error report):
+```
+The same error occurs when I click the 'Extract LLM' button.
+```
+
+Prompt 5 (debugging — stack trace):
+```
+Launched the server again and entered the same text as notes and hit the button 'Extract LLM', got the following stack trace from the server:
+
+sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 8263176064 and this is thread id 6111424512
+```
+
+Prompt 6 (debugging — second stack trace):
+```
+[Provided TypeError stack trace from db.insert_action_items showing cursor.lastrowid is None after executemany]
+```
+
+Prompt 7 (frontend validation):
+```
+When I launched the server, left the notes block empty and clicked on either 'Extract' or 'Extract LLM' button, I got an error message 'Error extracting item' on the UI. Why?
+```
+
+Prompt 8 (frontend fix):
+```
+fix the frontend to show a user-friendly message for empty text
+```
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+week2/app/routers/action_items.py: lines 9, 65-82
+- Added imports for extract_action_items_llm and OllamaServiceError (line 9)
+- Added POST /action-items/extract-llm endpoint that mirrors /extract but
+  uses LLM extraction, catches OllamaServiceError → HTTP 503 (lines 65-82)
+
+week2/app/routers/notes.py: lines 35-41
+- Added GET /notes endpoint that calls db.list_notes() and returns
+  list[NoteOut] (lines 35-41)
+
+week2/frontend/index.html: lines 27, 32-35, 42-47, 81-82, 84-101
+- Added "Extract LLM" button next to existing "Extract" button (line 27)
+- Added "List Notes" button and #notes container (lines 32-35)
+- Refactored extract logic into shared doExtract(endpoint) function (lines 42-79)
+- Added client-side empty text validation with user-friendly message (lines 43-47)
+- Added click handlers for Extract LLM and List Notes buttons (lines 81-82, 84-101)
+
+week2/app/db.py: lines 15, 70-82
+- Added check_same_thread=False to sqlite3.connect() to fix threading error
+  with FastAPI's threadpool-based sync handler dispatch (line 15)
+- Added early return for empty items list in insert_action_items() (lines 71-72)
+- Replaced executemany with individual execute calls to reliably capture
+  lastrowid for each inserted action item (lines 74-82)
 ```
 
 
