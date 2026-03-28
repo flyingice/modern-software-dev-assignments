@@ -30,6 +30,19 @@ class Settings:
         self.server_host: str = os.environ.get("FASTMCP_HOST", "0.0.0.0")
         self.server_port: int = int(os.environ.get("FASTMCP_PORT", "8000"))
 
+        self.oauth_enabled: bool = os.environ.get(
+            "OAUTH_ENABLED", "false"
+        ).lower() in ("true", "1", "yes")
+        self.oauth_issuer_url: str = os.environ.get(
+            "OAUTH_ISSUER_URL",
+            f"http://{self.server_host}:{self.server_port}",
+        )
+        self.oauth_required_scopes: list[str] = [
+            s.strip()
+            for s in os.environ.get("OAUTH_REQUIRED_SCOPES", "").split(",")
+            if s.strip()
+        ]
+
         if not self.rapidapi_key:
             logger.warning(
                 "RAPIDAPI_KEY is not set — API calls will fail. "

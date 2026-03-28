@@ -37,6 +37,9 @@ export RAPIDAPI_KEY="your-rapidapi-key-here"
 | `REQUEST_TIMEOUT` | `10` | HTTP request timeout in seconds |
 | `FASTMCP_HOST` | `0.0.0.0` | Server bind address |
 | `FASTMCP_PORT` | `8000` | Server port |
+| `OAUTH_ENABLED` | `false` | Enable OAuth 2.0 authentication |
+| `OAUTH_ISSUER_URL` | `http://localhost:8000` | OAuth issuer URL |
+| `OAUTH_REQUIRED_SCOPES` | *(empty)* | Comma-separated scopes required to access tools |
 
 ## Running the server
 
@@ -45,6 +48,90 @@ python -m server.main
 ```
 
 The server starts on `http://0.0.0.0:8000` using the Streamable HTTP transport. The MCP endpoint is at `/mcp`.
+
+### With OAuth 2.0 authentication
+
+```bash
+OAUTH_ENABLED=true python -m server.main
+```
+
+This activates the built-in OAuth 2.0 authorization server. Unauthenticated requests to `/mcp` will receive a `401` response.
+
+## OAuth 2.0 authentication flow
+
+When `OAUTH_ENABLED=true`, the server exposes standard OAuth 2.0 endpoints. Clients must complete the following flow to obtain a bearer token.
+
+### 1. Discover endpoints
+
+```bash
+curl http://localhost:8000/.well-known/oauth-authorization-server
+```
+
+Returns the authorization, token, and registration endpoint URLs.
+
+### 2. Register a client (dynamic client registration)
+
+```bash
+curl -X POST http://localhost:8000/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redirect_uris": ["http://localhost:3000/callback"],
+    "grant_types": ["authorization_code", "refresh_token"],
+    "response_types": ["code"],
+    "token_endpoint_auth_method": "client_secret_post"
+  }'
+```
+
+Save the returned `client_id` and `client_secret`.
+
+### 3. Authorize (with PKCE)
+
+Generate a PKCE code verifier and challenge:
+
+```bash
+CODE_VERIFIER=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+CODE_CHALLENGE=$(python3 -c "
+import hashlib, base64
+v = '$CODE_VERIFIER'
+digest = hashlib.sha256(v.encode()).digest()
+print(base64.urlsafe_b64encode(digest).rstrip(b'=').decode())
+")
+```
+
+Open the authorization URL in a browser or follow the redirect:
+
+```
+http://localhost:8000/authorize?response_type=code&client_id=CLIENT_ID&redirect_uri=http://localhost:3000/callback&code_challenge=CODE_CHALLENGE&code_challenge_method=S256&state=random_state
+```
+
+The dev server auto-approves and redirects to your `redirect_uri` with a `code` parameter.
+
+### 4. Exchange authorization code for tokens
+
+```bash
+curl -X POST http://localhost:8000/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code&code=AUTH_CODE&redirect_uri=http://localhost:3000/callback&client_id=CLIENT_ID&client_secret=CLIENT_SECRET&code_verifier=CODE_VERIFIER"
+```
+
+Returns an `access_token` (valid 1 hour) and `refresh_token`.
+
+### 5. Call the MCP endpoint
+
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '...'
+```
+
+### 6. Refresh an expired token
+
+```bash
+curl -X POST http://localhost:8000/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token&refresh_token=REFRESH_TOKEN&client_id=CLIENT_ID&client_secret=CLIENT_SECRET"
+```
 
 ## Claude Desktop configuration (macOS)
 
@@ -135,6 +222,7 @@ Claude calls `get_weather` with `city="Tokyo"` and returns something like:
 server/
 ├── main.py              # FastMCP server setup and entrypoint
 ├── config.py            # Environment-based settings (single source of truth)
+├── auth.py              # In-memory OAuth 2.0 authorization server provider
 ├── clients/
 │   ├── base.py          # Shared HTTP client with retry, timeout, rate-limit
 │   ├── yahoo_finance.py # Yahoo Finance integration
@@ -146,6 +234,7 @@ server/
 
 **Layered design:**
 - **Config** — all secrets and tunables live in `config.py`, read from env vars
+- **Auth** — optional OAuth 2.0 provider with in-memory storage for dev; swap for a real provider in production
 - **Clients** — HTTP logic with retries and rate-limit back-off; each API gets its own module
 - **Tools** — thin MCP wrappers that delegate to clients and format results
 - **Transport** — a single `mcp.run()` call in `main.py`, swappable without touching any other layer
