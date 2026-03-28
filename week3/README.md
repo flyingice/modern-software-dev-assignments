@@ -35,27 +35,16 @@ export RAPIDAPI_KEY="your-rapidapi-key-here"
 | `YAHOO_FINANCE_HOST` | `yahoo-finance15.p.rapidapi.com` | RapidAPI host for Yahoo Finance |
 | `WEATHERAPI_HOST` | `weatherapi-com.p.rapidapi.com` | RapidAPI host for WeatherAPI.com |
 | `REQUEST_TIMEOUT` | `10` | HTTP request timeout in seconds |
+| `FASTMCP_HOST` | `0.0.0.0` | Server bind address |
+| `FASTMCP_PORT` | `8000` | Server port |
 
 ## Running the server
-
-### STDIO (default — for Claude Desktop / Cursor)
 
 ```bash
 python -m server.main
 ```
 
-The server communicates over stdin/stdout using the MCP protocol. All logs go to stderr.
-
-### Switching to SSE or Streamable HTTP (future)
-
-The transport is a single argument in `server/main.py`:
-
-```python
-mcp.run(transport="sse")             # SSE on port 8000
-mcp.run(transport="streamable-http") # Streamable HTTP
-```
-
-No tool or client code changes are needed.
+The server starts on `http://0.0.0.0:8000` using the Streamable HTTP transport. The MCP endpoint is at `/mcp`.
 
 ## Claude Desktop configuration (macOS)
 
@@ -65,17 +54,17 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
     "mcpServers": {
         "weather-finance": {
-            "command": "/bin/bash",
-            "args": ["-c", "cd /path/to/week3 && .venv/bin/python -m server.main"],
+            "command": "npx",
+            "args": ["-y", "mcp-remote", "http://localhost:8000/mcp"],
             "env": {
-                "RAPIDAPI_KEY": "your-rapidapi-key-here"
+                "PATH": "/path/to/node/bin:/usr/local/bin:/usr/bin:/bin"
             }
         }
     }
 }
 ```
 
-Replace `/path/to/week3` with the absolute path to the `week3/` directory. Restart Claude Desktop after saving.
+`mcp-remote` acts as a stdio-to-HTTP bridge since Claude Desktop only supports stdio in config files. Update the `PATH` to include your Node.js `bin` directory. Start the MCP server before launching Claude Desktop.
 
 ## Example invocation flow
 

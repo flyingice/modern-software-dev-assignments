@@ -27,6 +27,8 @@ class Settings:
         self.request_timeout: float = float(
             os.environ.get("REQUEST_TIMEOUT", "10")
         )
+        self.server_host: str = os.environ.get("FASTMCP_HOST", "0.0.0.0")
+        self.server_port: int = int(os.environ.get("FASTMCP_PORT", "8000"))
 
         if not self.rapidapi_key:
             logger.warning(

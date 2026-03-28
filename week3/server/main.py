@@ -1,8 +1,8 @@
 """MCP server entrypoint.
 
-Starts a FastMCP server over STDIO by default.  The transport can be
-swapped to SSE or Streamable HTTP by changing the ``run()`` call — no
-tool or client code needs to change.
+Starts a FastMCP server over Streamable HTTP on localhost.  The host and
+port are configured via FASTMCP_HOST / FASTMCP_PORT environment variables
+(defaults: 0.0.0.0:8000).
 """
 
 from __future__ import annotations
@@ -12,11 +12,12 @@ import sys
 
 from mcp.server.fastmcp import FastMCP
 
+from .config import settings
 from .tools import weather, stocks
 
 
 # ---------------------------------------------------------------------------
-# Logging — write to stderr so STDIO transport stays clean.
+# Logging
 # ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +31,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 mcp = FastMCP(
     "Weather & Finance MCP Server",
+    host=settings.server_host,
+    port=settings.server_port,
     instructions=(
         "This server provides two tools:\n"
         "1. get_stock_quote — real-time stock price via Yahoo Finance\n"
@@ -44,9 +47,13 @@ weather.register(mcp)
 
 
 def main() -> None:
-    """Run the server with STDIO transport (default)."""
-    logger.info("Starting MCP server (STDIO transport)")
-    mcp.run(transport="stdio")
+    """Run the server with Streamable HTTP transport."""
+    logger.info(
+        "Starting MCP server (Streamable HTTP on %s:%s)",
+        settings.server_host,
+        settings.server_port,
+    )
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":
